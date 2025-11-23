@@ -90,11 +90,11 @@ const PDFExportModal = ({ isOpen, onClose }) => {
 
             pdf.setFontSize(11);
             pdf.setTextColor(40, 40, 40);
-            pdf.text(`Total Income: ₹${totalIncome.toFixed(2)}`, margin, yPos);
+            pdf.text(`Total Income: Rs. ${totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin, yPos);
             yPos += 6;
-            pdf.text(`Total Expense: ₹${totalExpense.toFixed(2)}`, margin, yPos);
+            pdf.text(`Total Expense: Rs. ${totalExpense.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin, yPos);
             yPos += 6;
-            pdf.text(`Net: ₹${netBalance.toFixed(2)}`, margin, yPos);
+            pdf.text(`Net: Rs. ${netBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin, yPos);
 
             yPos += 10;
 
@@ -135,7 +135,7 @@ const PDFExportModal = ({ isOpen, onClose }) => {
                 pdf.text(acc?.name || 'N/A', margin + 70, yPos);
                 pdf.text((t.note || '').substring(0, 20), margin + 110, yPos);
 
-                const amountText = `${t.type === 'income' ? '+' : '-'}₹${t.amount.toFixed(2)}`;
+                const amountText = `${t.type === 'income' ? '+' : '-'}Rs. ${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 if (t.type === 'income') {
                     pdf.setTextColor(16, 185, 129);
                 } else {
