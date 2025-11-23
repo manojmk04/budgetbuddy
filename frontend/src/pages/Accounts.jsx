@@ -5,7 +5,13 @@ import { Plus, CreditCard, Wallet, Building2 } from 'lucide-react';
 const Accounts = () => {
     const [accounts, setAccounts] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [newAccount, setNewAccount] = useState({ name: '', type: 'bank', balance: 0, credit_limit: 0, due_date: '' });
+    const [newAccount, setNewAccount] = useState({
+        name: '',
+        type: 'bank',
+        balance: '',
+        credit_limit: '',
+        due_date: ''
+    });
 
     useEffect(() => {
         fetchAccounts();
@@ -17,18 +23,35 @@ const Accounts = () => {
             setAccounts(res.data);
         } catch (error) {
             console.error("Error fetching accounts", error);
+            alert("Failed to fetch accounts. Please check if the backend is running.");
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log('Form submitted, newAccount:', newAccount);
+
         try {
-            await api.post('/accounts/', newAccount);
+            const accountData = {
+                name: newAccount.name,
+                type: newAccount.type,
+                balance: newAccount.type === 'credit' ? 0 : (parseFloat(newAccount.balance) || 0),
+                credit_limit: newAccount.type === 'credit' ? (parseFloat(newAccount.credit_limit) || 0) : null,
+                due_date: newAccount.type === 'credit' ? newAccount.due_date : null
+            };
+
+            console.log('Sending to API:', accountData);
+            const response = await api.post('/accounts/', accountData);
+            console.log('API Response:', response.data);
+
             setShowModal(false);
-            fetchAccounts();
-            setNewAccount({ name: '', type: 'bank', balance: 0, credit_limit: 0, due_date: '' });
+            await fetchAccounts();
+            setNewAccount({ name: '', type: 'bank', balance: '', credit_limit: '', due_date: '' });
+            alert('Account created successfully!');
         } catch (error) {
-            console.error("Error creating account", error);
+            console.error("Error creating account:", error);
+            console.error("Error response:", error.response?.data);
+            alert(`Failed to create account: ${error.response?.data?.detail || error.message}`);
         }
     };
 
@@ -63,12 +86,15 @@ const Accounts = () => {
                         </div>
                         <div className="text-right">
                             <div className="text-xl">₹{acc.balance.toLocaleString()}</div>
-                            {acc.type === 'credit' && (
-                                <div className="text-xs text-muted">Limit: ₹{acc.credit_limit}</div>
+                            {acc.type === 'credit' && acc.credit_limit && (
+                                <div className="text-xs text-muted">Limit: ₹{acc.credit_limit.toLocaleString()}</div>
                             )}
                         </div>
                     </div>
                 ))}
+                {accounts.length === 0 && (
+                    <div className="text-center text-muted py-8">No accounts yet. Click + to add your first account.</div>
+                )}
             </div>
 
             {showModal && (
@@ -101,9 +127,11 @@ const Accounts = () => {
                                     <input
                                         className="input"
                                         type="number"
+                                        step="0.01"
                                         placeholder="Credit Limit"
                                         value={newAccount.credit_limit}
-                                        onChange={e => setNewAccount({ ...newAccount, credit_limit: parseFloat(e.target.value) })}
+                                        onChange={e => setNewAccount({ ...newAccount, credit_limit: e.target.value })}
+                                        required
                                     />
                                     <input
                                         className="input"
@@ -117,15 +145,26 @@ const Accounts = () => {
                                 <input
                                     className="input"
                                     type="number"
+                                    step="0.01"
                                     placeholder="Current Balance"
                                     value={newAccount.balance}
-                                    onChange={e => setNewAccount({ ...newAccount, balance: parseFloat(e.target.value) })}
+                                    onChange={e => setNewAccount({ ...newAccount, balance: e.target.value })}
                                     required
                                 />
                             )}
 
                             <div className="flex gap-2 mt-2">
-                                <button type="button" className="btn" style={{ flex: 1, background: 'var(--background)' }} onClick={() => setShowModal(false)}>Cancel</button>
+                                <button
+                                    type="button"
+                                    className="btn"
+                                    style={{ flex: 1, background: 'var(--background)' }}
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setNewAccount({ name: '', type: 'bank', balance: '', credit_limit: '', due_date: '' });
+                                    }}
+                                >
+                                    Cancel
+                                </button>
                                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save</button>
                             </div>
                         </form>
