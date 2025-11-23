@@ -1,15 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
-import { Download } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 
 const Reports = () => {
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
     const [trendData, setTrendData] = useState([]);
-    const reportRef = useRef();
 
     useEffect(() => {
         fetchData();
@@ -30,51 +26,6 @@ const Reports = () => {
         }
     };
 
-    const downloadPDF = async () => {
-        const element = reportRef.current;
-
-        // Temporarily set background to white for capture
-        const originalBg = element.style.background;
-        element.style.background = '#ffffff';
-        element.style.color = '#000000';
-
-        try {
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-            });
-
-            const data = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-
-            // Header
-            pdf.setFontSize(22);
-            pdf.setTextColor(40, 40, 40);
-            pdf.text("BudgetBuddy Report", 10, 15);
-
-            pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100);
-            pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, 10, 22);
-
-            const imgProperties = pdf.getImageProperties(data);
-            const imgHeight = (imgProperties.height * (pdfWidth - 20)) / imgProperties.width;
-
-            pdf.addImage(data, 'PNG', 10, 30, pdfWidth - 20, imgHeight);
-            pdf.save(`BudgetBuddy_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-            alert("Report downloaded successfully!");
-        } catch (error) {
-            console.error("PDF Generation Error", error);
-            alert("Failed to generate PDF. Please try again.");
-        } finally {
-            // Restore styles
-            element.style.background = originalBg;
-            element.style.color = '';
-        }
-    };
-
     // Process data for charts
     const expenseData = categories
         .filter(c => c.type === 'expense')
@@ -90,12 +41,9 @@ const Reports = () => {
         <div className="flex flex-col gap-4" style={{ paddingBottom: '80px' }}>
             <header className="flex justify-between items-center">
                 <h1 className="text-2xl">Reports</h1>
-                <button className="btn btn-primary" onClick={downloadPDF}>
-                    <Download size={20} className="mr-2" /> Download PDF
-                </button>
             </header>
 
-            <div ref={reportRef} className="flex flex-col gap-4" style={{ background: 'var(--background)', padding: '1rem' }}>
+            <div className="flex flex-col gap-4">
                 <div className="card">
                     <h2 className="text-xl mb-4">Spending by Category</h2>
                     <div style={{ height: '300px' }}>

@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { Plus, ArrowRight, ChevronLeft } from 'lucide-react';
+import { Plus, ArrowRight, Download } from 'lucide-react';
 import { format, parseISO, startOfYear, endOfYear, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import PDFExportModal from '../components/PDFExportModal';
 
 const Transactions = () => {
     const [transactions, setTransactions] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [showModal, setShowModal] = useState(false);
+    const [showPDFModal, setShowPDFModal] = useState(false);
 
     // Drill-down State
-    const [viewMode, setViewMode] = useState('day'); // year, month, week, day
+    const [viewMode, setViewMode] = useState('day'); // day, week, month, year, specific, range
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedWeekStart, setSelectedWeekStart] = useState(new Date());
+    const [specificDate, setSpecificDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [rangeStart, setRangeStart] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [rangeEnd, setRangeEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
 
     // Form State
     const [activeTab, setActiveTab] = useState('expense');
@@ -29,7 +34,7 @@ const Transactions = () => {
 
     useEffect(() => {
         fetchData();
-    }, [viewMode, selectedYear, selectedMonth, selectedWeekStart]);
+    }, [viewMode, selectedYear, selectedMonth, selectedWeekStart, specificDate, rangeStart, rangeEnd]);
 
     const fetchData = async () => {
         try {
@@ -44,6 +49,16 @@ const Transactions = () => {
             } else if (viewMode === 'week') {
                 start = startOfWeek(selectedWeekStart);
                 end = endOfWeek(selectedWeekStart);
+            } else if (viewMode === 'specific') {
+                start = new Date(specificDate);
+                start.setHours(0, 0, 0, 0);
+                end = new Date(specificDate);
+                end.setHours(23, 59, 59, 999);
+            } else if (viewMode === 'range') {
+                start = new Date(rangeStart);
+                start.setHours(0, 0, 0, 0);
+                end = new Date(rangeEnd);
+                end.setHours(23, 59, 59, 999);
             } else {
                 // Day view
                 start = new Date();
@@ -114,29 +129,33 @@ const Transactions = () => {
         }
     };
 
-    // Navigation Logic
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     return (
         <div className="flex flex-col gap-4" style={{ paddingBottom: '80px' }}>
             <header className="flex justify-between items-center">
                 <h1 className="text-2xl">Transactions</h1>
-                <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                    <Plus size={20} />
-                </button>
+                <div className="flex gap-2">
+                    <button className="btn btn-primary" onClick={() => setShowPDFModal(true)}>
+                        <Download size={20} />
+                    </button>
+                    <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+                        <Plus size={20} />
+                    </button>
+                </div>
             </header>
 
             {/* Navigation */}
             <div className="card">
-                <div className="flex gap-4 mb-4 border-b border-border pb-2">
-                    {['day', 'week', 'month', 'year'].map(m => (
+                <div className="flex gap-4 mb-4 border-b border-border pb-2" style={{ overflowX: 'auto' }}>
+                    {['day', 'week', 'month', 'year', 'specific', 'range'].map(m => (
                         <button
                             key={m}
                             className={`text-sm font-bold ${viewMode === m ? 'text-primary' : 'text-muted'}`}
                             onClick={() => setViewMode(m)}
-                            style={{ textTransform: 'capitalize' }}
+                            style={{ textTransform: 'capitalize', whiteSpace: 'nowrap' }}
                         >
-                            {m}
+                            {m === 'specific' ? 'Specific Date' : m === 'range' ? 'Date Range' : m}
                         </button>
                     ))}
                 </div>
@@ -158,6 +177,41 @@ const Transactions = () => {
                                 onClick={() => setSelectedMonth(i)}
                             >{m}</button>
                         ))}
+                    </div>
+                )}
+
+                {viewMode === 'specific' && (
+                    <div>
+                        <label className="text-sm text-muted mb-2" style={{ display: 'block' }}>Select Date</label>
+                        <input
+                            type="date"
+                            className="input"
+                            value={specificDate}
+                            onChange={(e) => setSpecificDate(e.target.value)}
+                        />
+                    </div>
+                )}
+
+                {viewMode === 'range' && (
+                    <div className="flex gap-4 flex-wrap">
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                            <label className="text-sm text-muted mb-2" style={{ display: 'block' }}>Start Date</label>
+                            <input
+                                type="date"
+                                className="input"
+                                value={rangeStart}
+                                onChange={(e) => setRangeStart(e.target.value)}
+                            />
+                        </div>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                            <label className="text-sm text-muted mb-2" style={{ display: 'block' }}>End Date</label>
+                            <input
+                                type="date"
+                                className="input"
+                                value={rangeEnd}
+                                onChange={(e) => setRangeEnd(e.target.value)}
+                            />
+                        </div>
                     </div>
                 )}
             </div>
@@ -197,7 +251,10 @@ const Transactions = () => {
                 )}
             </div>
 
-            {/* Modal */}
+            {/* PDF Export Modal */}
+            <PDFExportModal isOpen={showPDFModal} onClose={() => setShowPDFModal(false)} />
+
+            {/* Add Transaction Modal */}
             {showModal && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
