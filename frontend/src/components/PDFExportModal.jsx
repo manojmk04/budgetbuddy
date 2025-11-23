@@ -76,10 +76,10 @@ const PDFExportModal = ({ isOpen, onClose }) => {
             yPos += 7;
             pdf.setFontSize(10);
             pdf.setTextColor(100, 100, 100);
-            pdf.text(`Period: ${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`, margin, yPos);
+            pdf.text(`Period: ${format(start, 'dd-MM-yyyy')} - ${format(end, 'dd-MM-yyyy')}`, margin, yPos);
 
             yPos += 5;
-            pdf.text(`Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`, margin, yPos);
+            pdf.text(`Generated: ${format(new Date(), 'dd-MM-yyyy h:mm a')}`, margin, yPos);
 
             yPos += 10;
 
@@ -90,11 +90,11 @@ const PDFExportModal = ({ isOpen, onClose }) => {
 
             pdf.setFontSize(11);
             pdf.setTextColor(40, 40, 40);
-            pdf.text(`Total Income: $${totalIncome.toFixed(2)}`, margin, yPos);
+            pdf.text(`Total Income: ₹${totalIncome.toFixed(2)}`, margin, yPos);
             yPos += 6;
-            pdf.text(`Total Expense: $${totalExpense.toFixed(2)}`, margin, yPos);
+            pdf.text(`Total Expense: ₹${totalExpense.toFixed(2)}`, margin, yPos);
             yPos += 6;
-            pdf.text(`Net: $${netBalance.toFixed(2)}`, margin, yPos);
+            pdf.text(`Net: ₹${netBalance.toFixed(2)}`, margin, yPos);
 
             yPos += 10;
 
@@ -118,8 +118,9 @@ const PDFExportModal = ({ isOpen, onClose }) => {
             pdf.line(margin, yPos, pageWidth - margin, yPos);
             yPos += 5;
 
-            // Transaction rows
-            transactions.forEach((t, index) => {
+            // Transaction rows - Sort earliest to latest
+            const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+            sortedTransactions.forEach((t, index) => {
                 if (yPos > pageHeight - 20) {
                     pdf.addPage();
                     yPos = 15;
@@ -129,12 +130,12 @@ const PDFExportModal = ({ isOpen, onClose }) => {
                 const acc = accounts.find(a => a.id === t.account_id);
 
                 pdf.setTextColor(40, 40, 40);
-                pdf.text(format(new Date(t.date), 'MM/dd/yy'), margin, yPos);
+                pdf.text(format(new Date(t.date), 'dd-MM-yyyy'), margin, yPos);
                 pdf.text(t.type === 'transfer' ? 'Transfer' : (cat?.name || 'N/A'), margin + 30, yPos);
                 pdf.text(acc?.name || 'N/A', margin + 70, yPos);
                 pdf.text((t.note || '').substring(0, 20), margin + 110, yPos);
 
-                const amountText = `${t.type === 'income' ? '+' : '-'}$${t.amount.toFixed(2)}`;
+                const amountText = `${t.type === 'income' ? '+' : '-'}₹${t.amount.toFixed(2)}`;
                 if (t.type === 'income') {
                     pdf.setTextColor(16, 185, 129);
                 } else {
@@ -150,7 +151,7 @@ const PDFExportModal = ({ isOpen, onClose }) => {
                 pdf.text('No transactions found for this period.', margin, yPos);
             }
 
-            const filename = `BudgetBuddy_Transactions_${format(start, 'yyyy-MM-dd')}_to_${format(end, 'yyyy-MM-dd')}.pdf`;
+            const filename = `BudgetBuddy_Transactions_${format(start, 'dd-MM-yyyy')}_to_${format(end, 'dd-MM-yyyy')}.pdf`;
             pdf.save(filename);
 
             alert('PDF downloaded successfully!');

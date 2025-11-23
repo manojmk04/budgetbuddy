@@ -108,7 +108,7 @@ const Dashboard = () => {
                     <div key={t.id} className="card flex justify-between items-center" style={{ padding: '1rem' }}>
                         <div className="flex flex-col">
                             <span style={{ fontWeight: 500 }}>{t.note || 'Transaction'}</span>
-                            <span className="text-sm text-muted">{new Date(t.date).toLocaleDateString()}</span>
+                            <span className="text-sm text-muted">{new Date(t.date).toLocaleDateString('en-GB')}</span>
                         </div>
                         <span className={t.type === 'income' ? 'text-success' : 'text-danger'} style={{ fontWeight: 'bold' }}>
                             {t.type === 'income' ? '+' : '-'}₹{t.amount}

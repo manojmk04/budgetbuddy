@@ -236,12 +236,12 @@ const Transactions = () => {
                                 </div>
                                 <div>
                                     <div className="font-bold">{isTransfer ? 'Transfer' : cat?.name}</div>
-                                    <div className="text-sm text-muted">{format(parseISO(t.date), 'MMM d, yyyy h:mm a')}</div>
+                                    <div className="text-sm text-muted">{format(parseISO(t.date), 'dd-MM-yyyy h:mm a')}</div>
                                     {t.note && <div className="text-xs text-muted">{t.note}</div>}
                                 </div>
                             </div>
                             <div className={`font-bold ${t.type === 'income' ? 'text-success' : 'text-danger'}`}>
-                                {t.type === 'income' ? '+' : '-'}${t.amount}
+                                {t.type === 'income' ? '+' : '-'}₹{t.amount}
                             </div>
                         </div>
                     );
@@ -286,7 +286,7 @@ const Transactions = () => {
                                         required
                                     >
                                         <option value="">Select Source Account</option>
-                                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name} (${a.balance})</option>)}
+                                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name} (₹{a.balance})</option>)}
                                     </select>
                                     <select
                                         className="input"
