@@ -129,3 +129,54 @@ def create_transfer(db: Session, transfer: schemas.TransferCreate):
     
     db.commit()
     return {"message": "Transfer successful"}
+
+def delete_transaction(db: Session, transaction_id: int):
+    transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
+    if not transaction:
+        return {"error": "Transaction not found"}
+    
+    # Reverse the balance change
+    if transaction.type == "income":
+        update_account_balance(db, transaction.account_id, transaction.amount, "expense")
+    elif transaction.type == "expense":
+        update_account_balance(db, transaction.account_id, transaction.amount, "income")
+    
+    db.delete(transaction)
+    db.commit()
+    return {"message": "Transaction deleted successfully"}
+
+def update_transaction(db: Session, transaction_id: int, transaction_update: schemas.TransactionCreate):
+    db_transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
+    if not db_transaction:
+        return {"error": "Transaction not found"}
+    
+    # Reverse old balance change
+    if db_transaction.type == "income":
+        update_account_balance(db, db_transaction.account_id, db_transaction.amount, "expense")
+    elif db_transaction.type == "expense":
+        update_account_balance(db, db_transaction.account_id, db_transaction.amount, "income")
+    
+    # Update transaction
+    for key, value in transaction_update.dict().items():
+        setattr(db_transaction, key, value)
+    
+    # Apply new balance change
+    update_account_balance(db, transaction_update.account_id, transaction_update.amount, transaction_update.type)
+    
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+def delete_account(db: Session, account_id: int):
+    # Check if account has transactions
+    transactions = db.query(models.Transaction).filter(models.Transaction.account_id == account_id).first()
+    if transactions:
+        return {"error": "Cannot delete account with existing transactions"}
+    
+    account = db.query(models.Account).filter(models.Account.id == account_id).first()
+    if not account:
+        return {"error": "Account not found"}
+    
+    db.delete(account)
+    db.commit()
+    return {"message": "Account deleted successfully"}

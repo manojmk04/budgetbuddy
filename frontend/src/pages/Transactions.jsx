@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { Plus, ArrowRight, Download } from 'lucide-react';
+import { Plus, ArrowRight, Download, Edit2, Trash2 } from 'lucide-react';
 import { format, parseISO, startOfYear, endOfYear, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import PDFExportModal from '../components/PDFExportModal';
 
@@ -10,6 +10,8 @@ const Transactions = () => {
     const [categories, setCategories] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [showPDFModal, setShowPDFModal] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
     // Drill-down State
     const [viewMode, setViewMode] = useState('day'); // day, week, month, year, specific, range
@@ -83,7 +85,17 @@ const Transactions = () => {
     const handleCreateTransaction = async (e) => {
         e.preventDefault();
         try {
-            if (activeTab === 'transfer') {
+            if (editMode) {
+                // Update existing transaction
+                await api.put(`/transactions/${editingId}`, {
+                    ...newTrans,
+                    type: activeTab,
+                    amount: parseFloat(newTrans.amount),
+                    account_id: parseInt(newTrans.account_id),
+                    category_id: parseInt(newTrans.category_id)
+                });
+                alert('Transaction updated successfully!');
+            } else if (activeTab === 'transfer') {
                 await api.post('/transfers/', {
                     ...newTransfer,
                     amount: parseFloat(newTransfer.amount),
@@ -100,10 +112,13 @@ const Transactions = () => {
                 });
             }
             setShowModal(false);
+            setEditMode(false);
+            setEditingId(null);
             fetchData();
             resetForms();
         } catch (error) {
-            console.error("Error creating transaction", error);
+            console.error("Error creating/updating transaction", error);
+            alert('Failed to save transaction');
         }
     };
 
@@ -126,6 +141,35 @@ const Transactions = () => {
             setNewCategory({ name: '', type: 'expense', color: '#3357FF' });
         } catch (error) {
             console.error("Error creating category", error);
+        }
+    };
+
+    const handleEdit = (transaction) => {
+        setEditMode(true);
+        setEditingId(transaction.id);
+        setActiveTab(transaction.type);
+        setNewTrans({
+            amount: transaction.amount.toString(),
+            type: transaction.type,
+            date: format(parseISO(transaction.date), "yyyy-MM-dd'T'HH:mm"),
+            note: transaction.note || '',
+            account_id: transaction.account_id.toString(),
+            category_id: transaction.category_id ? transaction.category_id.toString() : ''
+        });
+        setShowModal(true);
+    };
+
+    const handleDelete = async (transactionId) => {
+        if (!window.confirm('Are you sure you want to delete this transaction? This will reverse the balance change.')) {
+            return;
+        }
+        try {
+            await api.delete(`/transactions/${transactionId}`);
+            alert('Transaction deleted successfully!');
+            fetchData();
+        } catch (error) {
+            console.error("Error deleting transaction", error);
+            alert('Failed to delete transaction');
         }
     };
 
@@ -240,8 +284,28 @@ const Transactions = () => {
                                     {t.note && <div className="text-xs text-muted">{t.note}</div>}
                                 </div>
                             </div>
-                            <div className={`font-bold ${t.type === 'income' ? 'text-success' : 'text-danger'}`}>
-                                {t.type === 'income' ? '+' : '-'}₹{t.amount}
+                            <div className="flex items-center gap-3">
+                                <div className={`font-bold ${t.type === 'income' ? 'text-success' : 'text-danger'}`}>
+                                    {t.type === 'income' ? '+' : '-'}₹{t.amount}
+                                </div>
+                                {!isTransfer && (
+                                    <div className="flex gap-2">
+                                        <button
+                                            className="btn"
+                                            onClick={() => handleEdit(t)}
+                                            style={{ padding: '0.5rem', background: 'var(--primary)', color: 'white' }}
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button
+                                            className="btn"
+                                            onClick={() => handleDelete(t.id)}
+                                            style={{ padding: '0.5rem', background: 'var(--danger)', color: 'white' }}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     );
@@ -261,7 +325,7 @@ const Transactions = () => {
                     backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
                 }}>
                     <div className="card" style={{ width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <h2 className="text-xl mb-4">Add Transaction</h2>
+                        <h2 className="text-xl mb-4">{editMode ? 'Edit Transaction' : 'Add Transaction'}</h2>
 
                         <div className="flex gap-2 mb-4">
                             {['expense', 'income', 'transfer'].map(type => (
@@ -386,7 +450,7 @@ const Transactions = () => {
 
                             <div className="flex gap-2 mt-4">
                                 <button type="button" className="btn" onClick={() => setShowModal(false)} style={{ flex: 1 }}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>{editMode ? 'Update' : 'Save'}</button>
                             </div>
                         </form>
                     </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { Plus, CreditCard, Wallet, Building2 } from 'lucide-react';
+import { Plus, CreditCard, Wallet, Building2, Trash2 } from 'lucide-react';
 
 const Accounts = () => {
     const [accounts, setAccounts] = useState([]);
@@ -25,6 +25,18 @@ const Accounts = () => {
             console.error("Error fetching accounts", error);
             alert("Failed to fetch accounts. Please check if the backend is running.");
         }
+    };
+
+    const handleTypeChange = (type) => {
+        let defaultName = '';
+        if (type === 'cash') {
+            defaultName = 'Cash';
+        } else if (type === 'bank') {
+            defaultName = 'Bank Account';
+        } else if (type === 'credit') {
+            defaultName = 'Credit Card';
+        }
+        setNewAccount({ ...newAccount, type, name: defaultName });
     };
 
     const handleSubmit = async (e) => {
@@ -52,6 +64,25 @@ const Accounts = () => {
             console.error("Error creating account:", error);
             console.error("Error response:", error.response?.data);
             alert(`Failed to create account: ${error.response?.data?.detail || error.message}`);
+        }
+    };
+
+    const handleDelete = async (accountId, accountName) => {
+        if (!window.confirm(`Are you sure you want to delete "${accountName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await api.delete(`/accounts/${accountId}`);
+            if (response.data.error) {
+                alert(response.data.error);
+            } else {
+                alert('Account deleted successfully!');
+                fetchAccounts();
+            }
+        } catch (error) {
+            console.error("Error deleting account:", error);
+            alert(error.response?.data?.error || "Failed to delete account. It may have existing transactions.");
         }
     };
 
@@ -84,11 +115,20 @@ const Accounts = () => {
                                 <div className="text-sm text-muted capitalize">{acc.type}</div>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <div className="text-xl">₹{acc.balance.toLocaleString()}</div>
-                            {acc.type === 'credit' && acc.credit_limit && (
-                                <div className="text-xs text-muted">Limit: ₹{acc.credit_limit.toLocaleString()}</div>
-                            )}
+                        <div className="flex items-center gap-4">
+                            <div className="text-right">
+                                <div className="text-xl">₹{acc.balance.toLocaleString()}</div>
+                                {acc.type === 'credit' && acc.credit_limit && (
+                                    <div className="text-xs text-muted">Limit: ₹{acc.credit_limit.toLocaleString()}</div>
+                                )}
+                            </div>
+                            <button
+                                className="btn"
+                                onClick={() => handleDelete(acc.id, acc.name)}
+                                style={{ padding: '0.5rem', background: 'var(--danger)', color: 'white' }}
+                            >
+                                <Trash2 size={18} />
+                            </button>
                         </div>
                     </div>
                 ))}
@@ -105,6 +145,16 @@ const Accounts = () => {
                     <div className="card" style={{ width: '90%', maxWidth: '400px' }}>
                         <h2 className="text-xl mb-4">Add Account</h2>
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                            <select
+                                className="input"
+                                value={newAccount.type}
+                                onChange={e => handleTypeChange(e.target.value)}
+                            >
+                                <option value="bank">Bank Account</option>
+                                <option value="cash">Cash</option>
+                                <option value="credit">Credit Card</option>
+                            </select>
+
                             <input
                                 className="input"
                                 placeholder="Account Name"
@@ -112,15 +162,6 @@ const Accounts = () => {
                                 onChange={e => setNewAccount({ ...newAccount, name: e.target.value })}
                                 required
                             />
-                            <select
-                                className="input"
-                                value={newAccount.type}
-                                onChange={e => setNewAccount({ ...newAccount, type: e.target.value })}
-                            >
-                                <option value="bank">Bank Account</option>
-                                <option value="cash">Cash</option>
-                                <option value="credit">Credit Card</option>
-                            </select>
 
                             {newAccount.type === 'credit' ? (
                                 <>

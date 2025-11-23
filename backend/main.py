@@ -88,6 +88,18 @@ def read_report_trend(db: Session = Depends(get_db)):
 def create_transfer(transfer: schemas.TransferCreate, db: Session = Depends(get_db)):
     return crud.create_transfer(db=db, transfer=transfer)
 
+@app.delete("/transactions/{transaction_id}")
+def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
+    return crud.delete_transaction(db, transaction_id)
+
+@app.put("/transactions/{transaction_id}", response_model=schemas.Transaction)
+def update_transaction(transaction_id: int, transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
+    return crud.update_transaction(db, transaction_id, transaction)
+
+@app.delete("/accounts/{account_id}")
+def delete_account(account_id: int, db: Session = Depends(get_db)):
+    return crud.delete_account(db, account_id)
+
 # Pre-populate some data if empty (Optional helper)
 @app.post("/seed/")
 def seed_data(db: Session = Depends(get_db)):
